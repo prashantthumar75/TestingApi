@@ -1,0 +1,45 @@
+{% autoescape off %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Confirm Email</title>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="col s12 card" style="padding: 20px">
+        <h1 class="center-align">Hello from GM6 Online Drone mapping!</h1>
+        <h4 class="center-align" style="margin: 0">
+          You're receiving this e-mail because user {{ user_display }} has given
+          yours as an e-mail address to connect their account.
+        </h4>
+        <p class="center-align" style="margin: 0; padding-top: 8px">
+          Please click on the Button below to verify this email
+        </p>
+        <br />
+        <center>
+          <a
+            href="http://127.0.0.1:8000/auth/registration/verify-email/{{key}}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              text-decoration: none;
+              border-radius: 8px;
+              background-color: #404040;
+              border: 1px solid #000;
+              color: #fff;
+              padding: 10px 15px;
+            "
+            >VERIFY EMAIL</a
+          >
+        </center>
+        <p>Team, MyDesk</p>
+      </div>
+    </div>
+  </body>
+</html>
+
+{% endautoescape %}
