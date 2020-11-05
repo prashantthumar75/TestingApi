@@ -157,3 +157,5 @@ static
 media
 staticfiles
 *.sqlite3
+
+.idea/
