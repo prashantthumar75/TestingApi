@@ -3,5 +3,6 @@ from . import views
 
 
 urlpatterns=[
-    path("requests/", views.JoinRequests.as_view())
+    path("requests/department/", views.JoinRequestsDepartment.as_view()),
+    path("requests/teacher/", views.JoinRequestsTeacher.as_view()),
 ]

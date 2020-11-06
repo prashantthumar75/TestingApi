@@ -8,10 +8,10 @@ from organizations import models as organizations_models
 import json
 
 
-class Department(views.APIView):
+class Teacher(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = serializers.DepartmentSerializer
+    serializer_class = serializers.TeacherSerializer
 
     def post(self, request):
         data = json.loads(json.dumps(request.data))
