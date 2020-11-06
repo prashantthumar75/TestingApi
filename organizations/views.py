@@ -12,6 +12,10 @@ from . import models
 from teachers import models as teachers_models
 from departments import serializers as departments_serializers
 from departments import models as departments_models
+from classes import models as class_models
+from sections import models as section_models
+from classes import serializers as class_serializers
+from sections import serializers as section_serializers
 from teachers import serializers as teachers_serializers
 from users import models as users_models
 
@@ -40,8 +44,6 @@ class JoinRequestsDepartment(views.APIView):
     def get(self, request):
         query_params = self.request.query_params
         org_id = query_params.get('org_id', None)
-
-        print(org_id)
 
         if not org_id:
             errors = [
@@ -202,7 +204,6 @@ class JoinRequestsTeacher(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        # issue teacher is not working
         if len(teachers) < 3:
             errors = [
                 'teachers not passed'
@@ -245,3 +246,106 @@ class JoinRequestsTeacher(views.APIView):
             temp_teach.save()
 
         return Response({"details": ["Successfully accepted all provided requests."]}, status.HTTP_200_OK)
+
+
+class CreateClass(views.APIView):
+    serializer_class = class_serializers.ClassSerializer
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        data = request.data
+        title = data.get('title', "")
+        department = data.get('department', "")
+
+        if not title:
+            errors = [
+                'title is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not department:
+            errors = [
+                'department is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        departments = departments_models.Department.objects.filter(department_id = department)
+
+        if not len(departments):
+            errors = [
+                'Invalid department'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        department = departments[0]
+
+        class_models.Class.objects.create(title=title, department=department)
+
+        msgs = [
+            'successfully created class'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
+
+
+class CreateSection(views.APIView):
+    serializer_class = section_serializers.SectionSerializer
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        data = request.data
+        title = data.get('title', "")
+        of_class = data.get('of_class', "")
+        cls_tech = data.get('cls_teach', "")
+        department = data.get('department',"")
+
+        if not title:
+            errors = [
+                'title is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not of_class:
+            errors = [
+                'of_class is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not cls_tech:
+            errors = [
+                'cls_teach is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not department:
+            errors = [
+                'department is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+
+        qr_class = class_models.Class.objects.filter(title=of_class, department__name=department, is_active=True)
+
+        if not len(qr_class):
+            errors = [
+                'Invalid class or department Department is Case Sensitive'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        qr_teach = teachers_models.Teacher.objects.filter(name=cls_tech, is_active=True)
+        if not len(qr_teach):
+            errors = [
+                'Invalid teacher  Teacher is Case Sensitive'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        of_class = qr_class[0]
+        cls_tech  = qr_teach[0]
+
+        section_models.Section.objects.create(title=title, of_class=of_class, class_teacher=cls_tech)
+
+        msgs = [
+            'successfully created section'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
