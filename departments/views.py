@@ -10,6 +10,8 @@ from drf_yasg2 import openapi
 # Custom
 from . import models, serializers
 from organizations import models as organizations_models
+from classes import models as classes_models
+from classes import serializers as classes_serializers
 
 # Utils
 import json
@@ -99,3 +101,43 @@ class JoinDepartment(views.APIView):
             'Join request sent'
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
+
+
+class AssignedClass(views.APIView):
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
+    def get(self, request):
+        dept_id = self.request.query_params.get('dept_id', "")
+
+        if not dept_id:
+            errors = [
+                'dept_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        departments = models.Department.objects.filter(id=int(dept_id), is_active=True)
+                
+        if not len(departments):
+            errors = [
+                'Invalid dept_id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        department = departments[0]
+
+        qs = classes_models.Class.objects.filter(department=department, is_active=True)
+
+        serializer = classes_serializers.ClassSerializer(qs, many=True)
+        return Response(serializer.data, status.HTTP_200_OK)

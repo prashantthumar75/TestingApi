@@ -23,6 +23,8 @@ urlpatterns = [
     path('auth/registration/', include('dj_rest_auth.registration.urls')),
 
     path('departments/', include('departments.urls')),
+    path('classes/', include('classes.urls')),
+    path('sections/', include('sections.urls')),
     path('organizations/', include('organizations.urls')),
     path('teachers/', include('teachers.urls')),
 
