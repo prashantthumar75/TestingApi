@@ -2,11 +2,20 @@ from django.shortcuts import render
 from rest_framework import status, permissions, authentication, views, viewsets
 from rest_framework.response import Response
 from django.db.models import Q
+
+# Swagger
+from drf_yasg2.utils import swagger_auto_schema
+from drf_yasg2 import openapi
+
+# CUSTOM
 from . import models
-from departments import models as departments_models
 from teachers import models as teachers_models
 from departments import serializers as departments_serializers
+from departments import models as departments_models
 from teachers import serializers as teachers_serializers
+from users import models as users_models
+
+
 
 # Utils
 import json
@@ -18,8 +27,21 @@ class JoinRequestsDepartment(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
     def get(self, request):
-        org_id = request.data.get('org_id')
+        query_params = self.request.query_params
+        org_id = query_params.get('org_id', None)
+
+        print(org_id)
 
         if not org_id:
             errors = [
@@ -35,21 +57,55 @@ class JoinRequestsDepartment(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
+        organization = organizations[0]
+
         departments = departments_models.Department.objects.filter(
-            Q(requested_organization__id=organizations[0].id) & Q(is_active=True))
+            Q(organization__id=organization.id) & Q(is_active=True))
 
         serializer = departments_serializers.DepartmentSerializer(departments, many=True)
 
         return Response(serializer.data, status.HTTP_200_OK)
 
-    def post(self, request):
-        data = json.loads(json.dumps(request.data))
-        org_id = data.get('org_id')
-        departments = str(data.get("departments", "[]"))
 
-        if not org_id:
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Join department request",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'dept_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'requesting_user_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    def post(self, request):
+        data = request.data
+        org_id = data.get('org_id', "")
+        dept_id = data.get('dept_id', "")
+        requesting_user_id = data.get("requesting_user_id", 0)
+
+
+        if not len(org_id):
             errors = [
                 'org_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not len(dept_id):
+            errors = [
+                'dept_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not requesting_user_id:
+            errors = [
+                'requesting_user_id is not passed'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
@@ -61,49 +117,39 @@ class JoinRequestsDepartment(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        # issue department is not working
-        if len(departments) < 3:
+        organization = organizations[0]
+
+        departments = departments_models.Department.objects.filter(Q(organization__id=organization.id) & Q(department_id=dept_id))
+        
+        if not len(departments):
             errors = [
-                'departments not passed'
+                'Invalid dept_id'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        try:
-            departments = departments.replace(" ", "")
-            departments = departments[1:len(departments) - 1].split(",")
-            departments = [int(i) for i in departments]
-        except Exception as e:
+        department = departments[0]
+
+        request_list = []
+        for i in department.requesting_users.all():
+            request_list.append(str(i.id))
+
+        if not str(requesting_user_id) in request_list:
             errors = [
-                "departments format should be like this. [1, 2, 3] where 1, 2 and 3 are department ID's",
-                str(e)
+                'Invalid requesting_user_id ID'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        dept_qs = departments_models.Department.objects.filter(is_active=True)
+        department.requesting_users.remove(int(requesting_user_id))
+        department.user = users_models.User.objects.get(id=int(requesting_user_id))
+        department.save()
 
-        valid_departments = []
+        msgs = [
+            'Request accepted successfully'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
 
-        for i in departments:
-            temp_depts = dept_qs.filter(id=i)
-            if not len(temp_depts):
-                errors = [
-                    'Invalid department ID'
-                ]
-                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-            temp_dept = temp_depts[0]
-            if not temp_dept.requested_organization or temp_dept.requested_organization.user.id != request.user.id:
-                errors = [
-                    'Invalid department ID'
-                ]
-                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-            valid_departments.append(temp_dept)
 
-        for temp_dept in valid_departments:
-            temp_dept.organization = temp_dept.requested_organization
-            temp_dept.requested_organization = None
-            temp_dept.save()
 
-        return Response({"details": ["Successfully accepted all provided requests."]}, status.HTTP_200_OK)
 
 
 class JoinRequestsTeacher(views.APIView):

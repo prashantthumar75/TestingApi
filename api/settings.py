@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = ")ns8rx+!h^u6o8=tdlz6o2bre7r20)^50=du!6xe4+*d+!$tt("
 
-DEBUG = False
+DEBUG = True
 
 
 DATABASES = {

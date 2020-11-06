@@ -40,7 +40,7 @@ class Teacher(views.APIView):
 
         if not organization.accepting_req:
             errors = [
-                'This organization is not accepting requests currently.'
+                'This organization is currently not accepting requests'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 

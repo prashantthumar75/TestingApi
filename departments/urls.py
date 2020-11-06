@@ -3,5 +3,5 @@ from . import views
 
 
 urlpatterns=[
-    path("create/", views.Department.as_view())
+    path("join/", views.JoinDepartment.as_view())
 ]
