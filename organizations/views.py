@@ -59,6 +59,7 @@ class JoinRequests(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
+        # issue department is not working
         if not departments:
             errors = [
                 'departments not passed'

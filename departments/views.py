@@ -19,7 +19,7 @@ class Department(views.APIView):
 
         if not org_join_id:
             errors = [
-                'Organization Join ID is not passed'
+                'Org_Join_ID  is not passed'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
         

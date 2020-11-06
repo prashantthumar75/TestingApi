@@ -9,6 +9,7 @@ SECRET_KEY = ")ns8rx+!h^u6o8=tdlz6o2bre7r20)^50=du!6xe4+*d+!$tt("
 
 DEBUG = False
 
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
