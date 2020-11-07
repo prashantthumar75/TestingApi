@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import status, permissions, authentication, views, viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from django.db.models import Q
 
 # Swagger
@@ -8,7 +9,7 @@ from drf_yasg2.utils import swagger_auto_schema
 from drf_yasg2 import openapi
 
 # CUSTOM
-from . import models
+from . import models, serializers
 from teachers import models as teachers_models
 from departments import serializers as departments_serializers
 from departments import models as departments_models
@@ -18,9 +19,52 @@ from students import serializers as student_serializers
 from sections import serializers as section_serializers
 from teachers import serializers as teachers_serializers
 from users import models as users_models
+from users import permissions as custom_permissions
 
 # Utils
 import json
+
+
+
+class VerifyOrgId(views.APIView):
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
+    def post(self, request):
+        query_params = self.request.query_params
+        org_id = query_params.get('org_id', None)
+        
+        organizations = models.Organization.objects.filter(org_id=str(org_id))
+        if not org_id:
+            errors = [
+                'org_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        
+        if not len(organizations):
+            errors = [
+                'Invalid org_id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        organization = organizations[0]
+
+        serializer = serializers.OrganizationSerializer(organization)
+        
+        return Response(serializer.data, status.HTTP_200_OK)
+    
+
 
 
 class JoinRequestsDepartment(views.APIView):
@@ -359,7 +403,7 @@ class JoinRequestsStudent(views.APIView):
 
         if len(students) < 3:
             errors = [
-                "teachers not passed or teachers format should be like this. [1, 2, 3] where 1, 2 and 3 are teacher ID's"
+                "students not passed or students format should be like this. [1, 2, 3] where 1, 2 and 3 are student ID's"
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
@@ -377,7 +421,7 @@ class JoinRequestsStudent(views.APIView):
             students = [int(i) for i in students]
         except Exception as e:
             errors = [
-                "teachers format should be like this. [1, 2, 3] where 1, 2 and 3 are teacher ID's",
+                "students format should be like this. [1, 2, 3] where 1, 2 and 3 are student ID's",
                 str(e)
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
@@ -397,7 +441,7 @@ class JoinRequestsStudent(views.APIView):
             # or temp_stud.requested_organization.user.id != request.user.id
             if not temp_stud.requested_section:
                 errors = [
-                    'student to section join request '
+                    'no students in waiting list'
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             valid_students.append(temp_stud)
@@ -408,4 +452,3 @@ class JoinRequestsStudent(views.APIView):
             temp_stud.save()
 
         return Response({"details": ["Successfully accepted all provided requests."]}, status.HTTP_200_OK)
-

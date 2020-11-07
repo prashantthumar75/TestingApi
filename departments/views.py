@@ -17,6 +17,38 @@ from classes import serializers as classes_serializers
 import json
 
 
+class Department(views.APIView):
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="id", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
+    def get(self, request):
+        query_params = self.request.query_params
+        id = query_params.get('id', None)
+        org_id = query_params.get('org_id', None)
+
+        qs = models.Department.objects.filter(is_active=True)
+
+        if id:
+            qs = qs.filter(id=int(id))
+
+        if org_id:
+            qs = qs.filter(organization__org_id=org_id)
+
+        serializer = serializers.DepartmentSerializer(qs, many=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+
 class JoinDepartment(views.APIView):
 
     authentication_classes = (authentication.TokenAuthentication,)
@@ -101,7 +133,6 @@ class JoinDepartment(views.APIView):
             'Join request sent'
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
-
 
 class AssignedClass(views.APIView):
 
