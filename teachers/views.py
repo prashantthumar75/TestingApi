@@ -7,12 +7,32 @@ from organizations import models as organizations_models
 # Utils
 import json
 
+# Swagger
+from drf_yasg2.utils import swagger_auto_schema
+from drf_yasg2 import openapi
+
 
 class Teacher(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = serializers.TeacherSerializer
 
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Join teacher request",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_join_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
     def post(self, request):
         data = json.loads(json.dumps(request.data))
         org_join_id = data.get("org_join_id")

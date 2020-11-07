@@ -12,7 +12,8 @@ class Section(models.Model):
     is_active = models.BooleanField(default=True)
     
     def __str__(self):
-        return self.title
+        # return self.title
+        return str(self.title + " of class " + str(self.of_class))
 
     def save(self, *args, **kwargs):
         if not self.join_id:

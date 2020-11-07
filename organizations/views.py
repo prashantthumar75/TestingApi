@@ -12,9 +12,9 @@ from . import models
 from teachers import models as teachers_models
 from departments import serializers as departments_serializers
 from departments import models as departments_models
-from classes import models as class_models
+from students import models as student_models
 from sections import models as section_models
-from classes import serializers as class_serializers
+from students import serializers as student_serializers
 from sections import serializers as section_serializers
 from teachers import serializers as teachers_serializers
 from users import models as users_models
@@ -156,8 +156,19 @@ class JoinRequestsTeacher(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
     def get(self, request):
-        org_id = request.data.get('org_id')
+        query_params = self.request.query_params
+        org_id = query_params.get('org_id', None)
 
         if not org_id:
             errors = [
@@ -180,9 +191,26 @@ class JoinRequestsTeacher(views.APIView):
 
         return Response(serializer.data, status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Join teacher request",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'teachers': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+
     def post(self, request):
-        data = json.loads(json.dumps(request.data))
-        org_id = data.get('org_id')
+        data = request.data
+        org_id = data.get('org_id',"")
         teachers = str(data.get("teachers", "[]"))
 
         if not org_id:
@@ -201,7 +229,7 @@ class JoinRequestsTeacher(views.APIView):
 
         if len(teachers) < 3:
             errors = [
-                'teachers not passed'
+                "teachers not passed or teachers format should be like this. [1, 2, 3] where 1, 2 and 3 are teacher ID's"
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
@@ -230,7 +258,7 @@ class JoinRequestsTeacher(views.APIView):
             temp_teach = temp_teach[0]
             if not temp_teach.requested_organization or temp_teach.requested_organization.user.id != request.user.id:
                 errors = [
-                    'Invalid department ID'
+                    'Teacher to Organization join request not sent'
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             valid_teachers.append(temp_teach)
@@ -241,3 +269,143 @@ class JoinRequestsTeacher(views.APIView):
             temp_teach.save()
 
         return Response({"details": ["Successfully accepted all provided requests."]}, status.HTTP_200_OK)
+
+
+class JoinRequestsStudent(views.APIView):
+
+    # queryset = section_models.Section.objects.filter(is_active=True)
+    serializer_class = student_serializers.StudentSerializer
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="sec_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
+    def get(self, request):
+        query_params = self.request.query_params
+        org_id = query_params.get('org_id', None)
+        sec_id = query_params.get('sec_id',None)
+
+        if not org_id:
+            errors = [
+                'org_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if not sec_id:
+            errors = [
+                'sec_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        organizations = models.Organization.objects.filter(Q(user__id=request.user.id) & Q(org_id=org_id))
+
+        if not len(organizations):
+            errors = [
+                'Invalid org_id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        students = student_models.Student.objects.filter(
+            Q(requested_section__id = sec_id) & Q(is_active=True)& Q(requested_section__of_class__department__organization__org_id=org_id)
+        )
+
+        if not len(students):
+            errors = [
+                'requested sec_id for student is not available'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+
+        serializer = student_serializers.StudentSerializer(students, many=True)
+
+        return Response(serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Join teacher request",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'students': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+
+    def post(self, request):
+        data = request.data
+        org_id = data.get('org_id',"")
+        students = str(data.get("students", "[]"))
+
+        if not org_id:
+            errors = [
+                'org_id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        if len(students) < 3:
+            errors = [
+                "teachers not passed or teachers format should be like this. [1, 2, 3] where 1, 2 and 3 are teacher ID's"
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        organizations = models.Organization.objects.filter(Q(user__id=request.user.id) & Q(org_id=org_id))
+
+        if not len(organizations):
+            errors = [
+                'Invalid org_id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        try:
+            students = students.replace(" ", "")
+            students = students[1:len(students) - 1].split(",")
+            students = [int(i) for i in students]
+        except Exception as e:
+            errors = [
+                "teachers format should be like this. [1, 2, 3] where 1, 2 and 3 are teacher ID's",
+                str(e)
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        stud_qs = student_models.Student.objects.filter(is_active=True)
+
+        valid_students = []
+
+        for i in students:
+            temp_stud = stud_qs.filter(id=i)
+            if not len(temp_stud):
+                errors = [
+                    'Invalid student ID'
+                ]
+                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+            temp_stud = temp_stud[0]
+            # or temp_stud.requested_organization.user.id != request.user.id
+            if not temp_stud.requested_section:
+                errors = [
+                    'student to section join request '
+                ]
+                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+            valid_students.append(temp_stud)
+
+        for temp_stud in valid_students:
+            temp_stud.section = temp_stud.requested_section
+            temp_stud.requested_section = None
+            temp_stud.save()
+
+        return Response({"details": ["Successfully accepted all provided requests."]}, status.HTTP_200_OK)
+
