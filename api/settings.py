@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     'subjects',
     'teachers',
     'users',
-    'utils',
 ]
 
 SITE_ID = 1

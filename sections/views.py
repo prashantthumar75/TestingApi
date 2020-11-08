@@ -12,8 +12,6 @@ from . import models, serializers
 from teachers import models as teachers_models
 from classes import models as class_models
 from classes import serializers as class_serializers
-from users import permissions as custom_permissions
-
 
 class Section(views.APIView):
 
@@ -62,7 +60,7 @@ class Section(views.APIView):
 class CreateSection(views.APIView):
     serializer_class = serializers.SectionSerializer
     authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, custom_permissions.IsOrganization)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
@@ -125,7 +123,7 @@ class CreateSection(views.APIView):
 class AssignTeacher(views.APIView):
 
     authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, custom_permissions.IsOrganization)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(

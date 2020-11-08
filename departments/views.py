@@ -13,9 +13,29 @@ from organizations import models as organizations_models
 from classes import models as classes_models
 from classes import serializers as classes_serializers
 
+from utils.decorators import validate_dept, validate_org
+
 # Utils
 import json
 
+class VerifyDeptId(views.APIView):
+
+    permission_classes = (permissions.AllowAny,)
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
+    @validate_dept
+    def get(self, request, *args, **kwargs):
+        serializer = serializers.DepartmentSerializer(kwargs.get("department"))
+        return Response(serializer.data, status.HTTP_200_OK)
 
 class Department(views.APIView):
 
@@ -71,32 +91,13 @@ class JoinDepartment(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    def post(self, request):
+    @validate_org
+    @validate_dept
+    def post(self, request, *args, **kwargs):
         data = request.data
-        org_id = data.get("org_id", None)
-        dept_id = data.get("dept_id", None)
-
-
-        if not org_id:
-            errors = [
-                'org_id  is not passed'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        dept_id = data.get("dept_id", 0)
         
-        organizations = organizations_models.Organization.objects.filter(org_id=org_id)
-        if not len(organizations):
-            errors = [
-                'Invalid organization ID'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-        
-        organization = organizations[0]
-
-        if not organization.is_active:
-            errors = [
-                'Invalid organization ID'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        organization = kwargs.get("organization")
 
         if not organization.accepting_req:
             errors = [
@@ -104,19 +105,11 @@ class JoinDepartment(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        departments = models.Department.objects.filter(Q(organization=organization) & Q(department_id=dept_id) & Q(is_active=True))
+        department = kwargs.get("department")
 
-        if not len(departments):
+        if  not department.organization == organization:
             errors = [
-                'Invalid department ID'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-        
-        department = departments[0]
-
-        if not department.organization.accepting_req:
-            errors = [
-                "This organization is currently not accepting department's join requests"
+                'Invalid dept_id'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
