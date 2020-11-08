@@ -1,5 +1,5 @@
 from django.db import models
-
+import uuid
 class Teacher(models.Model):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='teacher_user')
     name = models.CharField(max_length=100)
@@ -12,3 +12,11 @@ class Teacher(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.teacher_id:
+            temp_tech_id = str(uuid.uuid4())
+            while Teacher.objects.filter(teacher_id=temp_tech_id):
+                temp_tech_id = str(uuid.uuid4())
+            self.teacher_id = temp_tech_id
+            super().save()

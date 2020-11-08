@@ -15,7 +15,7 @@ class Event(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.type
+        return str(self.type + " of subject "+ str(self.subject))
 
 
 class Assignment(models.Model):
