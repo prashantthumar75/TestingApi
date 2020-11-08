@@ -2,7 +2,6 @@ from django.shortcuts import render
 from rest_framework import status, permissions, authentication, views, viewsets
 from rest_framework.response import Response
 from organizations import models as organizations_models
-from users import permissions as custom_permissions
 from django.db.models import Q
 
 # Utils
@@ -85,7 +84,7 @@ class Teacher(views.APIView):
 class AssignSubject(views.APIView):
 
     authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, custom_permissions.IsOrganization)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(

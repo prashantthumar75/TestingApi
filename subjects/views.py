@@ -10,7 +10,6 @@ from drf_yasg2 import openapi
 # CUSTOM
 from . import models, serializers
 from sections import models as sections_models
-from users import permissions as custom_permissions
 
 
 
@@ -66,7 +65,7 @@ class Subject(views.APIView):
 class CreateSubject(views.APIView):
     serializer_class = serializers.SubjectSerializer
     authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, custom_permissions.IsOrganization)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
