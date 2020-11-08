@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 from organizations import models as organizations_models
 from departments import models as departments_models
+from events import models as events_models
 
 
 def validate_org(func):
@@ -54,6 +55,30 @@ def validate_dept(func):
         
     return check
 
+
+def validate_event(func):
+    def check(*args, **kwargs):
+
+        request = args[1]
+
+        if request.method == "GET":
+            event_id = request.query_params.get('event', 0)
+        else:
+            event_id = request.data.get('event', 0)
+
+        if not event_id:
+            return Response({'details': ['event is not passed']}, status.HTTP_400_BAD_REQUEST)
+
+        events = events_models.Event.objects.filter(Q(id=event_id) & Q(is_active=True))
+
+        if not len(events):
+            return Response({'details': ['Invalid event']}, status.HTTP_400_BAD_REQUEST)
+
+        kwargs.update({"event": events[0]})
+
+        return func(*args, **kwargs)
+        
+    return check
 
 def is_organization(func):
     @validate_org
