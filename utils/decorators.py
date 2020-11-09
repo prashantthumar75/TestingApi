@@ -3,9 +3,14 @@ from rest_framework.response import Response
 from django.db.models import Q
 from organizations import models as organizations_models
 from departments import models as departments_models
+from teachers import models as teachers_models
+from students import models as students_models
 from events import models as events_models
 
 
+##############################################
+#               Validate Objects             #
+##############################################
 def validate_org(func):
     def check(*args, **kwargs):
 
@@ -80,6 +85,61 @@ def validate_event(func):
         
     return check
 
+
+def validate_assignment(func):
+    def check(*args, **kwargs):
+
+        request = args[1]
+
+        if request.method == "GET":
+            assignment_id = request.query_params.get('assignment', 0)
+        else:
+            assignment_id = request.data.get('assignment', 0)
+
+        if not assignment_id:
+            return Response({'details': ['assignment is not passed']}, status.HTTP_400_BAD_REQUEST)
+
+        assignments = events_models.Assignment.objects.filter(Q(id=assignment_id) & Q(is_active=True))
+
+        if not len(assignments):
+            return Response({'details': ['Invalid assignment ID']}, status.HTTP_400_BAD_REQUEST)
+
+        kwargs.update({"assignment": assignments[0]})
+
+        return func(*args, **kwargs)
+        
+    return check
+
+
+def validate_submitted_assignment(func):
+    def check(*args, **kwargs):
+
+        request = args[1]
+
+        if request.method == "GET":
+            submitted_assignment_id = request.query_params.get('submitted_assignment', 0)
+        else:
+            submitted_assignment_id = request.data.get('submitted_assignment', 0)
+
+        if not submitted_assignment_id:
+            return Response({'details': ['submitted_assignment is not passed']}, status.HTTP_400_BAD_REQUEST)
+
+        submitted_assignments = events_models.SubmittedAssignment.objects.filter(Q(id=submitted_assignment_id) & Q(is_active=True))
+
+        if not len(submitted_assignments):
+            return Response({'details': ['Invalid submitted_assignment ID']}, status.HTTP_400_BAD_REQUEST)
+
+        kwargs.update({"submitted_assignment": submitted_assignments[0]})
+
+        return func(*args, **kwargs)
+        
+    return check
+
+
+#############################################
+#               Validate Users              #
+#############################################
+
 def is_organization(func):
     @validate_org
     def check(*args, **kwargs):
@@ -94,7 +154,6 @@ def is_organization(func):
         return Response({'details': ['Invalid org_id']}, status.HTTP_400_BAD_REQUEST)
 
     return check
-
 
 
 def is_department(func):
@@ -114,4 +173,44 @@ def is_department(func):
         
         return Response({'details': ['Invalid dept_id']}, status.HTTP_400_BAD_REQUEST)
 
+    return check
+
+
+def is_teacher(func):
+    @validate_org
+    def check(*args, **kwargs):
+
+        request = args[1]
+        user = request.user
+
+        organization = kwargs.get('organization')
+
+        teachers = teachers_models.Teacher.objects.filter(Q(user=user) & Q(organization=organization) & Q(is_active=True))
+
+        if not len(teachers):
+            return Response({'details': ['Invalid request']}, status.HTTP_400_BAD_REQUEST)
+
+        kwargs.update({"teacher": teachers[0]})
+        return func(*args, **kwargs)
+        
+    return check
+
+
+def is_student(func):
+    @validate_org
+    def check(*args, **kwargs):
+
+        request = args[1]
+        user = request.user
+
+        organization = kwargs.get('organization')
+
+        students = students_models.Student.objects.filter(Q(user=user) & Q(section__of_class__department__organization=organization) & Q(is_active=True))
+
+        if not len(students):
+            return Response({'details': ['Invalid request']}, status.HTTP_400_BAD_REQUEST)
+
+        kwargs.update({"student": students[0]})
+        return func(*args, **kwargs)
+        
     return check

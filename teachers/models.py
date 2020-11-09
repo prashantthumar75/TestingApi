@@ -19,4 +19,4 @@ class Teacher(models.Model):
             while Teacher.objects.filter(teacher_id=temp_tech_id):
                 temp_tech_id = str(uuid.uuid4())
             self.teacher_id = temp_tech_id
-            super().save()
+        super().save()
