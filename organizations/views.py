@@ -286,7 +286,7 @@ class JoinRequestsStudent(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        organizations = models.Organization.objects.filter(Q(user__id=request.user.id) & Q(org_id=org_id))
+        organizations = models.Organization.objects.filter(Q(is_active=True) & Q(org_id=org_id))
 
         if not len(organizations):
             errors = [
