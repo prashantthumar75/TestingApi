@@ -259,6 +259,46 @@ class SubmittedAssignment(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="assignment", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="submitted_assignment", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="event", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="subject", in_="query", type=openapi.TYPE_INTEGER),
+        ]
+    )
+    @validate_org
+    @is_teacher
+    def get(self, request, *args, **kwargs):
+        query_params = self.request.query_params
+        submitted_assignment_id = query_params.get('assignment', None)
+        assignment_id = query_params.get('assignment', None)
+        event_id = query_params.get('event', None)
+        subject_id = query_params.get('subject', None)
+
+        qs = events_models.SubmittedAssignment.objects.filter(is_active=True)
+
+        if submitted_assignment_id:
+            qs = qs.filter(id=int(submitted_assignment_id))
+
+        if assignment_id:
+            qs = qs.filter(assignment__id=int(assignment_id))
+
+        if event_id:
+            qs = qs.filter(assignment__event__id=int(event_id))
+
+        if subject_id:
+            qs = qs.filter(assignment__event__subject__id=int(subject_id))
+
+        serializer = events_serializer.SubmittedAssignmentSerializer(qs, many=True)
+        return Response(serializer.data, status.HTTP_200_OK)
+        
+    @swagger_auto_schema(
         request_body = openapi.Schema(
             title = "Create Assignment",
             type=openapi.TYPE_OBJECT,
@@ -353,3 +393,51 @@ class SubmittedAssignment(views.APIView):
         return Response({'details': msgs}, status.HTTP_200_OK)
 
 
+<<<<<<< HEAD
+=======
+class SubmittedAssignmentFile(views.APIView):
+    
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Add Submitted Assignment files",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'submitted_assignment': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'file': openapi.Schema(type=openapi.TYPE_FILE),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    @is_student
+    @validate_submitted_assignment
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        file = data.get("file", None)
+        submitted_assignment = kwargs.get("submitted_assignment")
+
+        if not file:
+            return Response({'details': ['file is required']}, status.HTTP_400_BAD_REQUEST)
+
+        data_dict = {
+            "submission": submitted_assignment.id,
+            "file": file
+        }
+        serializer = events_serializer.SubmittedAssignmentFileSerializer(data=data_dict)
+        if not serializer.is_valid():
+            return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+        msgs = [ 
+            'successfully saved assignment file'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
+>>>>>>> 30a984ac7d19b12fde1b91c17b395a6561e9a2c8
