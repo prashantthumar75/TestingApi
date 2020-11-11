@@ -4,7 +4,7 @@ import uuid
 
 class Organization(models.Model):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='organization_user')
-    name = models.CharField(max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=100)
     location = models.TextField(blank=True, null=True)
     org_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     join_id = models.CharField(max_length=100, blank=True, null=True, unique=True)

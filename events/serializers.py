@@ -33,3 +33,8 @@ class SubmittedAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SubmittedAssignment
         fields = "__all__"
+
+class SubmittedAssignmentFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.SubmittedAssignmentFile
+        fields = "__all__"

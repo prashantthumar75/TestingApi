@@ -188,7 +188,7 @@ def is_teacher(func):
         teachers = teachers_models.Teacher.objects.filter(Q(user=user) & Q(organization=organization) & Q(is_active=True))
 
         if not len(teachers):
-            return Response({'details': ['Invalid request']}, status.HTTP_400_BAD_REQUEST)
+            return Response({'details': ['Invalid teacher request']}, status.HTTP_400_BAD_REQUEST)
 
         kwargs.update({"teacher": teachers[0]})
         return func(*args, **kwargs)
@@ -208,7 +208,7 @@ def is_student(func):
         students = students_models.Student.objects.filter(Q(user=user) & Q(section__of_class__department__organization=organization) & Q(is_active=True))
 
         if not len(students):
-            return Response({'details': ['Invalid request']}, status.HTTP_400_BAD_REQUEST)
+            return Response({'details': ['Invalid Student request']}, status.HTTP_400_BAD_REQUEST)
 
         kwargs.update({"student": students[0]})
         return func(*args, **kwargs)

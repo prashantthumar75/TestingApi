@@ -7,12 +7,54 @@ from rest_framework.response import Response
 from . import models, serializers
 from organizations import models as organizations_models
 from sections import models as section_models
+
 # Utils
 import json
+from utils.decorators import validate_org,validate_dept,is_organization,is_student,is_department
 
 # Swagger
 from drf_yasg2.utils import swagger_auto_schema
 from drf_yasg2 import openapi
+
+class StudentGet(views.APIView):
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = serializers.StudentSerializer
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="section_id", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="class_id", in_="query", type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def get(self, request):
+        query_params = self.request.query_params
+        org_id = query_params.get('org_id', None)
+        section_id = query_params.get('section_id', None)
+        dept_id = query_params.get('dept_id', None)
+        class_id = query_params.get('class_id', None)
+
+        qs = models.Student.objects.filter(is_active=True)
+
+        if section_id:
+            qs = qs.filter(section__id=section_id)
+        if org_id:
+            qs = qs.filter(section__of_class__department__organization__org_id=org_id)
+        if dept_id:
+            qs = qs.filter(section__of_class__department__department_id=dept_id)
+        if class_id:
+            qs = qs.filter(section__of_class__id=class_id)
+
+        serializer = serializers.StudentSerializer(qs, many=True)
+        return Response(serializer.data, status.HTTP_200_OK)
 
 
 class Student(views.APIView):
@@ -36,6 +78,7 @@ class Student(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
+
     def post(self, request):
         data = json.loads(json.dumps(request.data))
         sec_join_id = data.get("sec_join_id")
@@ -79,3 +122,49 @@ class Student(views.APIView):
             return Response(serializer.data, status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Update Student",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                'phone': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'student_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    @validate_org
+    @is_student
+    def put(self, request, *args, **kwargs):
+        data = request.data
+        is_active = data.get('is_active', False)
+        name = data.get("name","")
+        student_id = data.get("student_id","")
+        phone = data.get("phone","")
+
+        data_dict = {
+            "name": name,
+            "student_id": student_id,
+            "phone": phone,
+            "is_active": is_active,
+        }
+        student = kwargs.get("student")
+        serializer = serializers.StudentSerializer(student,data=data_dict, partial=True)
+
+        if not serializer.is_valid():
+            return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+        msgs = [
+            'successfully updated assignment'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)

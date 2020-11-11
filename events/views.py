@@ -219,7 +219,6 @@ class AssignmentFile(views.APIView):
                 'org_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'assignment': openapi.Schema(type=openapi.TYPE_INTEGER),
                 'file': openapi.Schema(type=openapi.TYPE_FILE),
-                'file': openapi.Schema(type=openapi.TYPE_FILE),
             }
         ),
         responses={
@@ -352,3 +351,5 @@ class SubmittedAssignment(views.APIView):
             'successfully updated assignment'
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
+
+

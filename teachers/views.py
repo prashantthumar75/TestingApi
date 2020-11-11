@@ -6,6 +6,8 @@ from django.db.models import Q
 
 # Utils
 import json
+from utils.decorators import validate_org,validate_dept,is_student,is_teacher, is_organization
+
 from . import models, serializers
 from events import serializers as event_serializers
 from subjects import models as subjects_models
@@ -79,6 +81,55 @@ class Teacher(views.APIView):
             return Response(serializer.data, status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Update Teacher",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                'phone': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'teacher_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    @validate_org
+    @is_teacher
+    def put(self, request, *args, **kwargs):
+        data = request.data
+        is_active = data.get('is_active', False)
+        name = data.get("name","")
+        teacher_id = data.get("teacher_id","")
+        phone = data.get("phone","")
+
+        data_dict = {
+            "name": name,
+            "teacher_id": teacher_id,
+            "phone": phone,
+            "is_active": is_active,
+        }
+        teacher = kwargs.get("teacher")
+
+        serializer = serializers.TeacherSerializer(teacher,data=data_dict, partial=True)
+
+        if not serializer.is_valid():
+            return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+        msgs = [
+            'successfully updated assignment'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
+
 
 
 class AssignSubject(views.APIView):

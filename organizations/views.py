@@ -300,7 +300,7 @@ class JoinRequestsStudent(views.APIView):
 
         if not len(students):
             errors = [
-                'requested sec_id for student is not available'
+                f'no request pending for this section_id: {sec_id}'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
@@ -374,7 +374,6 @@ class JoinRequestsStudent(views.APIView):
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             temp_stud = temp_stud[0]
-            # or temp_stud.requested_organization.user.id != request.user.id
             if not temp_stud.requested_section:
                 errors = [
                     'no students in waiting list'

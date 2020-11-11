@@ -10,11 +10,12 @@ from drf_yasg2 import openapi
 # CUSTOM
 from . import models, serializers
 from departments import models as departments_models
+from organizations import models as organizations_models
 from sections import serializers as section_serializers
-
 
 # Utils
 import json
+from utils.decorators import validate_org, validate_dept, is_organization, is_department
 
 class Class(views.APIView):
 
@@ -33,7 +34,7 @@ class Class(views.APIView):
         serializer = serializers.ClassSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
-class CreateClass(views.APIView):
+class AddClass(views.APIView):
     serializer_class = serializers.ClassSerializer
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
@@ -44,7 +45,8 @@ class CreateClass(views.APIView):
             type=openapi.TYPE_OBJECT,
             properties={
                 'title': openapi.Schema(type=openapi.TYPE_STRING),
-                'department': openapi.Schema(type=openapi.TYPE_STRING),
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'dept_id': openapi.Schema(type=openapi.TYPE_STRING),
             }
         ),
         responses={
@@ -54,10 +56,14 @@ class CreateClass(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    def post(self, request):
+    @is_department
+    @validate_org
+    def post(self, request, **kwargs):
         data = request.data
         title = data.get('title', "")
-        department = data.get('department', "")
+        department = data.get('dept_id', "")
+
+        org_id = kwargs.get("org_id")
 
         if not title:
             errors = [
@@ -72,7 +78,6 @@ class CreateClass(views.APIView):
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
         departments = departments_models.Department.objects.filter(department_id = department)
-
         if not len(departments):
             errors = [
                 'Invalid department'
@@ -80,7 +85,6 @@ class CreateClass(views.APIView):
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
         department = departments[0]
-
         if models.Class.objects.filter(title=title, department=department).exists():
             errors = [
                 'Class already exists'
