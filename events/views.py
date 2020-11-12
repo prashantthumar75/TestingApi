@@ -393,8 +393,6 @@ class SubmittedAssignment(views.APIView):
         return Response({'details': msgs}, status.HTTP_200_OK)
 
 
-<<<<<<< HEAD
-=======
 class SubmittedAssignmentFile(views.APIView):
     
     authentication_classes = (authentication.TokenAuthentication,)
@@ -440,4 +438,3 @@ class SubmittedAssignmentFile(views.APIView):
             'successfully saved assignment file'
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
->>>>>>> 30a984ac7d19b12fde1b91c17b395a6561e9a2c8

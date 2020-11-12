@@ -151,7 +151,7 @@ def is_organization(func):
         if organization.user == user:
             return func(*args, **kwargs)
         
-        return Response({'details': ['Invalid org_id']}, status.HTTP_400_BAD_REQUEST)
+        return Response({'details': ['Permission denied, invalid organization']}, status.HTTP_400_BAD_REQUEST)
 
     return check
 
@@ -168,10 +168,30 @@ def is_department(func):
 
         department = kwargs.get('department')
         
-        if department.user == user and department.organization == organization:
+        if department.user == user and department.organization == organization and department.organization == organization:
             return func(*args, **kwargs)
         
-        return Response({'details': ['Invalid dept_id']}, status.HTTP_400_BAD_REQUEST)
+        return Response({'details': ['Permission denied, invalid department']}, status.HTTP_400_BAD_REQUEST)
+
+    return check
+
+
+def is_org_or_department(func):
+    @validate_org
+    @validate_dept
+    def check(*args, **kwargs):
+
+        request = args[1]
+        user = request.user
+
+        organization = kwargs.get('organization')
+        department = kwargs.get('department')
+        
+        # Checking whether the user is department or org.
+        if department.user == user or organization.user == user:
+            return func(*args, **kwargs)
+
+        return Response({'details': ['Permission denied, invalid organization or department']}, status.HTTP_400_BAD_REQUEST)
 
     return check
 
@@ -188,7 +208,7 @@ def is_teacher(func):
         teachers = teachers_models.Teacher.objects.filter(Q(user=user) & Q(organization=organization) & Q(is_active=True))
 
         if not len(teachers):
-            return Response({'details': ['Invalid teacher request']}, status.HTTP_400_BAD_REQUEST)
+            return Response({'details': ['Permission denied, invalid teacher']}, status.HTTP_400_BAD_REQUEST)
 
         kwargs.update({"teacher": teachers[0]})
         return func(*args, **kwargs)
@@ -208,7 +228,7 @@ def is_student(func):
         students = students_models.Student.objects.filter(Q(user=user) & Q(section__of_class__department__organization=organization) & Q(is_active=True))
 
         if not len(students):
-            return Response({'details': ['Invalid Student request']}, status.HTTP_400_BAD_REQUEST)
+            return Response({'details': ['Permission denied, invalid student']}, status.HTTP_400_BAD_REQUEST)
 
         kwargs.update({"student": students[0]})
         return func(*args, **kwargs)

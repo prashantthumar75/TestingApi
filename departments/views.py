@@ -18,8 +18,15 @@ from organizations import serializers as organizations_serializers
 
 
 # Utils
+from utils.utilities import pop_from_data
 import json
-from utils.decorators import validate_dept, validate_org, is_department
+from utils.decorators import (
+    validate_dept,
+    validate_org,
+    is_department,
+    is_org_or_department,
+    is_organization
+)
 
 class VerifyDeptId(views.APIView):
 
@@ -40,10 +47,11 @@ class VerifyDeptId(views.APIView):
         serializer = serializers.DepartmentSerializer(kwargs.get("department"))
         return Response(serializer.data, status.HTTP_200_OK)
 
-class Department(views.APIView):
+class DepartmentViewSet(views.APIView):
 
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = serializers.DepartmentSerializer
 
     @swagger_auto_schema(
         responses={
@@ -53,18 +61,23 @@ class Department(views.APIView):
         },
         manual_parameters=[
             openapi.Parameter(name="id", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
             openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
         ]
     )
     def get(self, request):
         query_params = self.request.query_params
         id = query_params.get('id', None)
+        dept_id = query_params.get('dept_id', None)
         org_id = query_params.get('org_id', None)
 
         qs = models.Department.objects.filter(is_active=True)
 
         if id:
             qs = qs.filter(id=int(id))
+        
+        if dept_id:
+            qs = qs.filter(department_id=str(dept_id))
 
         if org_id:
             qs = qs.filter(organization__org_id=org_id)
@@ -72,17 +85,12 @@ class Department(views.APIView):
         serializer = serializers.DepartmentSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
-class AddDepartment(views.APIView):
-    authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = serializers.DepartmentSerializer
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
-            title = "Join department request",
+            title = "Create department",
             type=openapi.TYPE_OBJECT,
             properties={
-                'org_join_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'org_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'name': openapi.Schema(type=openapi.TYPE_STRING),
             }
@@ -94,52 +102,29 @@ class AddDepartment(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @validate_org
+    @is_organization
     def post(self, request, *args, **kwargs):
         data = json.loads(json.dumps(request.data))
-        org_id = kwargs.get("org_id")
-        org_join_id = data.get("org_join_id")
+        name = data.get("name", None)
 
-        user = request.user
-        if not org_join_id:
-            errors = [
-                'Org_Join_ID  is not passed'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        if not name:
+            return Response({'details': ["name is required"]}, status.HTTP_400_BAD_REQUEST)
 
-        organizations = organizations_models.Organization.objects.filter(join_id=org_join_id)
-        if not len(organizations):
-            errors = [
-                'Invalid organization Join ID'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        organization = kwargs.get("organization")
 
-        organization = organizations[0]
+        data_dict = {
+            "organization" : organization.id,
+            "name": str(name)
+        }
 
-        if not organization.is_active:
-            errors = [
-                'Invalid organization Join ID'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-
-        if not organization.accepting_req:
-            errors = [
-                'This organization is currently not accepting requests'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-
-        data.update({
-            "organization" : organization.user.id,
-            "requesting_users": [user.id]
-        })
-
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data_dict)
 
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
@@ -150,10 +135,9 @@ class AddDepartment(views.APIView):
                 'dept_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                 'contact_name': openapi.Schema(type=openapi.TYPE_STRING),
-                'contact_phone': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'contact_phone': openapi.Schema(type=openapi.TYPE_STRING),
                 'contact_email': openapi.Schema(type=openapi.TYPE_STRING),
-                'department_id': openapi.Schema(type=openapi.TYPE_STRING),
-                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                'department_id': openapi.Schema(type=openapi.TYPE_STRING)
 
             }
         ),
@@ -165,35 +149,22 @@ class AddDepartment(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @validate_org
-    @is_department
+    @is_org_or_department
     def put(self, request, *args, **kwargs):
         data = request.data
-        is_active = data.get('is_active', False)
-        name = data.get("name", "")
-        contact_name = data.get("contact_name", "")
-        department_id = data.get("department_id", "")
-        phone = data.get("contact_phone", "")
-        email = data.get("contact_email", "")
 
-        data_dict = {
-            "name": name,
-            "contact_name": contact_name,
-            "contact_phone": phone,
-            "contact_email": email,
-            "department_id": department_id,
-            "is_active": is_active,
-        }
+        data = pop_from_data(["is_active", "user", "organization"], data)
+
         department = kwargs.get("department")
 
-        serializer = serializers.DepartmentSerializer(department, data=data_dict, partial=True)
+        serializer = serializers.DepartmentSerializer(department, data=data, partial=True)
 
         if not serializer.is_valid():
             return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
         msgs = [
-            'successfully updated assignment'
+            'successfully updated department'
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
 
@@ -351,6 +322,7 @@ class JoinRequestsStudent(views.APIView):
 
         return Response(serializer.data, status.HTTP_200_OK)
 
+
     @swagger_auto_schema(
         request_body = openapi.Schema(
             title = "Join Department request",
@@ -368,7 +340,6 @@ class JoinRequestsStudent(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-
     @validate_org
     @validate_dept
     def post(self, request, *args, **kwargs):

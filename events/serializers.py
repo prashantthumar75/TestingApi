@@ -6,6 +6,7 @@ class EventSerializer(serializers.ModelSerializer):
         model = models.Event
         fields = "__all__"
 
+
 class AssignmentFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.AssignmentFile
@@ -43,18 +44,10 @@ class SubmittedAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SubmittedAssignment
         fields = "__all__"
-<<<<<<< HEAD
 
-class SubmittedAssignmentFileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.SubmittedAssignmentFile
-        fields = "__all__"
-=======
-    
     def to_representation(self, instance):
         response = super().to_representation(instance)
 
         submitted_assignment_files = models.SubmittedAssignmentFile.objects.filter(submission=instance.id)
         response["submitted_assignment_files"] = SavedAssignmentFileSerializer(submitted_assignment_files, many=True).data
         return response
->>>>>>> 30a984ac7d19b12fde1b91c17b395a6561e9a2c8

@@ -17,7 +17,7 @@ from sections import serializers as section_serializers
 import json
 from utils.decorators import validate_org, validate_dept, is_organization, is_department
 
-class Class(views.APIView):
+class ClassViewSet(views.APIView):
 
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
@@ -33,11 +33,6 @@ class Class(views.APIView):
         qs = models.Class.objects.filter(is_active=True)
         serializer = serializers.ClassSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
-
-class AddClass(views.APIView):
-    serializer_class = serializers.ClassSerializer
-    authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
