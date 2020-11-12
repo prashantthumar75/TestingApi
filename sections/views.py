@@ -13,8 +13,10 @@ from teachers import models as teachers_models
 from classes import models as class_models
 from classes import serializers as class_serializers
 
-class Section(views.APIView):
 
+# TODO: Can only be accessible by Organization
+class CreateSection(views.APIView):
+    serializer_class = serializers.SectionSerializer
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -55,12 +57,6 @@ class Section(views.APIView):
         serializer = serializers.SectionSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
-
-# TODO: Can only be accessible by Organization
-class CreateSection(views.APIView):
-    serializer_class = serializers.SectionSerializer
-    authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(

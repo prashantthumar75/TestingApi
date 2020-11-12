@@ -12,9 +12,8 @@ from . import models, serializers
 from sections import models as sections_models
 
 
-
-class Subject(views.APIView):
-
+class CreateSubject(views.APIView):
+    serializer_class = serializers.SubjectSerializer
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -61,11 +60,6 @@ class Subject(views.APIView):
         serializer = serializers.SubjectSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
-
-class CreateSubject(views.APIView):
-    serializer_class = serializers.SubjectSerializer
-    authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(

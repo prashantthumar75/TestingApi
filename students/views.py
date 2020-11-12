@@ -10,13 +10,16 @@ from sections import models as section_models
 
 # Utils
 import json
-from utils.decorators import validate_org,validate_dept,is_organization,is_student,is_department
+from utils.decorators import put_student
+from utils.utilities import pop_from_data
 
 # Swagger
 from drf_yasg2.utils import swagger_auto_schema
 from drf_yasg2 import openapi
 
-class StudentGet(views.APIView):
+
+# TODO : One user have one student, teacher, department
+class Student(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = serializers.StudentSerializer
@@ -56,11 +59,6 @@ class StudentGet(views.APIView):
         serializer = serializers.StudentSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
-
-class Student(views.APIView):
-    authentication_classes = (authentication.TokenAuthentication,)
-    permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = serializers.StudentSerializer
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
@@ -132,7 +130,6 @@ class Student(views.APIView):
                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                 'phone': openapi.Schema(type=openapi.TYPE_INTEGER),
                 'student_id': openapi.Schema(type=openapi.TYPE_STRING),
-                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
             }
         ),
         responses={
@@ -142,23 +139,14 @@ class Student(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @validate_org
-    @is_student
+    @put_student
     def put(self, request, *args, **kwargs):
         data = request.data
-        is_active = data.get('is_active', False)
-        name = data.get("name","")
-        student_id = data.get("student_id","")
-        phone = data.get("phone","")
 
-        data_dict = {
-            "name": name,
-            "student_id": student_id,
-            "phone": phone,
-            "is_active": is_active,
-        }
+        data = pop_from_data(["is_active", "user", "section"], data)
+
         student = kwargs.get("student")
-        serializer = serializers.StudentSerializer(student,data=data_dict, partial=True)
+        serializer = serializers.StudentSerializer(student,data=data, partial=True)
 
         if not serializer.is_valid():
             return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)

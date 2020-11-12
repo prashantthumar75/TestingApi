@@ -1,5 +1,7 @@
 from django.db import models
 import uuid
+
+
 class Teacher(models.Model):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='teacher_user')
     name = models.CharField(max_length=100)

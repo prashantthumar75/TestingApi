@@ -196,6 +196,26 @@ def is_org_or_department(func):
     return check
 
 
+def is_all(func):
+    @validate_org
+    @validate_dept
+    def check(*args, **kwargs):
+        request = args[1]
+        user = request.user
+
+        organization = kwargs.get('organization')
+        department = kwargs.get('department')
+
+        # Checking whether the user is department or org.
+        if department.user == user or organization.user == user:
+            return func(*args, **kwargs)
+
+        return Response({'details': ['Permission denied, invalid organization or department']},
+                        status.HTTP_400_BAD_REQUEST)
+
+    return check
+
+
 def is_teacher(func):
     @validate_org
     def check(*args, **kwargs):
@@ -233,4 +253,24 @@ def is_student(func):
         kwargs.update({"student": students[0]})
         return func(*args, **kwargs)
         
+    return check
+
+
+def put_student(func):
+    @validate_org
+    @is_student
+    def check(*args, **kwargs):
+        request = args[1]
+        user = request.user
+
+        organization = kwargs.get('organization')
+        student = kwargs.get('student')
+
+        # Checking whether the user is department or org.
+        if student.user == user or organization.user == user:
+            return func(*args, **kwargs)
+
+        return Response({'details': ['Permission denied, invalid student']},
+                        status.HTTP_400_BAD_REQUEST)
+
     return check

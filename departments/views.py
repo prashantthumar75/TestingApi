@@ -102,8 +102,8 @@ class DepartmentViewSet(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @is_organization
-    def post(self, request, *args, **kwargs):
+    @validate_org
+    def post(self, request, **kwargs):
         data = json.loads(json.dumps(request.data))
         name = data.get("name", None)
 
@@ -114,7 +114,8 @@ class DepartmentViewSet(views.APIView):
 
         data_dict = {
             "organization" : organization.id,
-            "name": str(name)
+            "name": str(name),
+            "requesting_users": [request.user.id],
         }
 
         serializer = self.serializer_class(data=data_dict)
@@ -153,7 +154,7 @@ class DepartmentViewSet(views.APIView):
     def put(self, request, *args, **kwargs):
         data = request.data
 
-        data = pop_from_data(["is_active", "user", "organization"], data)
+        data = pop_from_data(["is_active", "user", "organization", "department_id"], data)
 
         department = kwargs.get("department")
 
