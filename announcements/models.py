@@ -4,12 +4,17 @@ from django.db import models
 
 class Announcement(models.Model):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='announcement_user')
-    title = models.CharField(max_length=100)
+    organization = models.ForeignKey('organizations.Organization', on_delete=models.CASCADE, related_name='announcement_organization')
+
+    title = models.CharField(max_length=250)
     description = models.TextField(blank=True, null=True)
     data = models.TextField(blank=True,null=True)
     date = models.DateTimeField(blank=True, null=True)
-    visible = models.CharField(max_length=20)
+    visible = models.TextField(blank=True,null=True)
+    is_public = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
