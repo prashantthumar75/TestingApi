@@ -21,3 +21,8 @@ For assignments, name, description etc are necessary
 File upload is not possible in Swaggr. Use postman
 Wrong response in is_completed - true instead of false
 
+
+2 APIs for same thing
+
+/departments/requests/student/
+/organizations/requests/student/
