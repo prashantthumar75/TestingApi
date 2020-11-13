@@ -2,7 +2,7 @@ from django.db import models
 import uuid
 
 class Department(models.Model):
-    requesting_users = models.ManyToManyField('users.User', blank=True, related_name='department_requesting_users')
+    requesting_users = models.ManyToManyField('users.User', blank=True, related_name='department_requesting_user')
     user = models.ForeignKey('users.User', blank=True, null=True, on_delete=models.CASCADE, related_name='department_user')
     name = models.CharField(max_length=100)
     department_id = models.CharField(max_length=100, blank=True, null=True)

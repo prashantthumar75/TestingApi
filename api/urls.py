@@ -30,6 +30,7 @@ urlpatterns = [
     path('teachers/', include('teachers.urls')),
     path('students/', include('students.urls')),
     path('events/', include('events.urls')),
+    path('announcements/', include('announcements.urls')),
 
     re_path(r'^swagger(?P<format>.json|.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

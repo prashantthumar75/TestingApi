@@ -23,7 +23,50 @@ from utils.decorators import is_organization, validate_org, validate_dept
 
 # Utils
 import json
+from utils.decorators import is_organization, validate_org
 
+
+#TODO : filter for all entity
+class Organization(views.APIView):
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = serializers.OrganizationSerializer
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="teacher_id", in_="query", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(name="student_id", in_="query", type=openapi.TYPE_INTEGER),
+        ]
+    )
+    @validate_org
+    def get(self, request, **kwargs):
+        query_params = self.request.query_params
+        dept_id = query_params.get('dept_id', None)
+        teacher_id = query_params.get('teacher_id', None)
+        student_id = query_params.get('student_id', None)
+
+        organization = kwargs.get('organization')
+
+        org_id = organization.id
+        qs = models.Organization.objects.filter(id=org_id,is_active=True)
+
+        if teacher_id:
+            qs = teachers_models.Teacher.objects.filter(id=teacher_id,organization__id=org_id,is_active=True)
+        if dept_id:
+            qs = departments_models.Department.objects.filter(is_active=True)
+        if student_id:
+            qs = student_models.Student.objects.filter(is_active=True)
+
+        serializer = serializers.OrganizationSerializer(qs, many=True)
+        return Response(serializer.data, status.HTTP_200_OK)
 
 
 class VerifyOrgId(views.APIView):
@@ -147,26 +190,14 @@ class JoinRequestsTeacher(views.APIView):
             openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
         ]
     )
-    def get(self, request):
+    @is_organization
+    def get(self, request, **kwargs):
         query_params = self.request.query_params
-        org_id = query_params.get('org_id', None)
 
-        if not org_id:
-            errors = [
-                'org_id is not passed'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-
-        organizations = self.queryset.filter(Q(user__id=request.user.id) & Q(org_id=org_id))
-
-        if not len(organizations):
-            errors = [
-                'Invalid org_id'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        organizations=kwargs.get("organization")
 
         teachers = teachers_models.Teacher.objects.filter(
-            Q(requested_organization__id=organizations[0].id) & Q(is_active=True))
+            Q(requested_organization__id=organizations.id) & Q(is_active=True))
 
         serializer = teachers_serializers.TeacherSerializer(teachers, many=True)
 
@@ -269,33 +300,20 @@ class JoinRequestsStudent(views.APIView):
             openapi.Parameter(name="sec_id", in_="query", type=openapi.TYPE_STRING),
         ]
     )
-    def get(self, request):
+    @is_organization
+    def get(self, request, **kwargs):
         query_params = self.request.query_params
-        org_id = query_params.get('org_id', None)
         sec_id = query_params.get('sec_id',None)
 
-        if not org_id:
-            errors = [
-                'org_id is not passed'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-
+        org_id = kwargs.get('org_id')
         if not sec_id:
             errors = [
                 'sec_id is not passed'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        organizations = models.Organization.objects.filter(Q(is_active=True) & Q(org_id=org_id))
-
-        if not len(organizations):
-            errors = [
-                'Invalid org_id'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-
         students = student_models.Student.objects.filter(
-            Q(requested_section__id = sec_id) & Q(is_active=True)& Q(requested_section__of_class__department__organization__org_id=org_id)
+            Q(requested_section__id = sec_id) & Q(is_active=True)& Q(section__of_class__department__organization__org_id=org_id)
         )
 
         if not len(students):
@@ -303,7 +321,6 @@ class JoinRequestsStudent(views.APIView):
                 f'no request pending for this section_id: {sec_id}'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
-
 
         serializer = student_serializers.StudentSerializer(students, many=True)
 

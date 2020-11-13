@@ -7,20 +7,49 @@ from django.db.models import Q
 # Utils
 import json
 from utils.decorators import validate_org,validate_dept,is_student,is_teacher, is_organization
+from utils.utilities import pop_from_data
 
 from . import models, serializers
-from events import serializers as event_serializers
+from departments import serializers as department_serializers
 from subjects import models as subjects_models
-from events import models as events_models
+from departments import models as department_models
 # Swagger
 from drf_yasg2.utils import swagger_auto_schema
 from drf_yasg2 import openapi
 
 
+#TODO: get req for teacher
 class Teacher(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = serializers.TeacherSerializer
+
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("OK- Successful GET Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
+        ]
+    )
+    def get(self, request):
+        query_params = self.request.query_params
+        org_id = query_params.get('org_id', None)
+        dept_id = query_params.get('dept_id', None)
+
+        qs = models.Teacher.objects.filter(is_active=True)
+
+        if org_id:
+            qs = qs.filter(organization__org_id=org_id)
+        if dept_id:
+            qs = department_models.Department.objects.filter(department_id=dept_id)
+
+        serializer = serializers.TeacherSerializer(qs, many=True)
+        return Response(serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
@@ -91,7 +120,6 @@ class Teacher(views.APIView):
                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                 'phone': openapi.Schema(type=openapi.TYPE_INTEGER),
                 'teacher_id': openapi.Schema(type=openapi.TYPE_STRING),
-                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
 
             }
         ),
@@ -106,20 +134,12 @@ class Teacher(views.APIView):
     @is_teacher
     def put(self, request, *args, **kwargs):
         data = request.data
-        is_active = data.get('is_active', False)
-        name = data.get("name","")
-        teacher_id = data.get("teacher_id","")
-        phone = data.get("phone","")
 
-        data_dict = {
-            "name": name,
-            "teacher_id": teacher_id,
-            "phone": phone,
-            "is_active": is_active,
-        }
+        data = pop_from_data(["is_active", "user", "organization"], data)
+
         teacher = kwargs.get("teacher")
 
-        serializer = serializers.TeacherSerializer(teacher,data=data_dict, partial=True)
+        serializer = serializers.TeacherSerializer(teacher,data=data, partial=True)
 
         if not serializer.is_valid():
             return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
