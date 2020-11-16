@@ -18,7 +18,6 @@ from drf_yasg2.utils import swagger_auto_schema
 from drf_yasg2 import openapi
 
 
-# TODO : One user have one student, teacher, department
 class Student(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
