@@ -49,7 +49,8 @@ def validate_dept(func):
         if not dept_id:
             return Response({'details': ['dept_id is not passed']}, status.HTTP_400_BAD_REQUEST)
 
-        departments = departments_models.Department.objects.filter(Q(department_id=dept_id) & Q(is_active=True))
+        org = kwargs.get('organization')
+        departments = departments_models.Department.objects.filter(Q(department_id=dept_id) & Q(is_active=True) & Q(department__organization__id=org.id))
 
         if not len(departments):
             return Response({'details': ['Invalid dept_id']}, status.HTTP_400_BAD_REQUEST)

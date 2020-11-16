@@ -268,9 +268,10 @@ class JoinRequestsTeacher(views.APIView):
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             temp_teach = temp_teach[0]
+            #todo : teacher id 1,2 accepted and 3 remaining if we pass [1,2,3] wil not work , change funcationality
             if not temp_teach.requested_organization or temp_teach.requested_organization.user.id != request.user.id:
                 errors = [
-                    'Teacher to Organization join request not sent'
+                    'all requests accepted'
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             valid_teachers.append(temp_teach)

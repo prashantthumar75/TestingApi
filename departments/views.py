@@ -154,7 +154,7 @@ class DepartmentViewSet(views.APIView):
     def put(self, request, *args, **kwargs):
         data = request.data
 
-        data = pop_from_data(["is_active", "user", "organization", "department_id"], data)
+        data = pop_from_data(["is_active", "user", "organization"], data)
 
         department = kwargs.get("department")
 

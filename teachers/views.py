@@ -33,20 +33,16 @@ class Teacher(views.APIView):
         },
         manual_parameters=[
             openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
-            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
         ]
     )
     def get(self, request):
         query_params = self.request.query_params
         org_id = query_params.get('org_id', None)
-        dept_id = query_params.get('dept_id', None)
 
         qs = models.Teacher.objects.filter(is_active=True)
 
         if org_id:
             qs = qs.filter(organization__org_id=org_id)
-        if dept_id:
-            qs = department_models.Department.objects.filter(department_id=dept_id)
 
         serializer = serializers.TeacherSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
@@ -142,7 +138,7 @@ class Teacher(views.APIView):
         serializer = serializers.TeacherSerializer(teacher,data=data, partial=True)
 
         if not serializer.is_valid():
-            return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
+               return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
 
         serializer.save()
         msgs = [

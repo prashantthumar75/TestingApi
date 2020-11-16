@@ -27,10 +27,23 @@ class ClassViewSet(views.APIView):
             200: openapi.Response("OK- Successful GET Request"),
             401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
             500: openapi.Response("Internal Server Error- Error while processing the GET Request Function.")
-        }
+        },
+        manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
+        ]
     )
-    def get(self, request):
-        qs = models.Class.objects.filter(is_active=True)
+    @is_organization
+    def get(self, request, **kwargs):
+        query_params = self.request.query_params
+        org_id = kwargs.get('organization', None)
+        dept_id = query_params.get('dept_id',None)
+
+        qs = models.Class.objects.filter(is_active=True, department__organization__id=org_id.id)
+
+        if dept_id:
+            qs = qs.filter(department__department_id=dept_id, department__organization__id=org_id.id)
+
         serializer = serializers.ClassSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
 
@@ -51,14 +64,15 @@ class ClassViewSet(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @validate_dept
     @validate_org
+    @validate_dept
     def post(self, request, **kwargs):
         data = request.data
         title = data.get('title', "")
 
         department = kwargs.get("department")
-        org_id = kwargs.get("org_id")
+        organization = kwargs.get("organization")
+
         if not title:
             errors = [
                 'title is not passed'
@@ -71,9 +85,20 @@ class ClassViewSet(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        models.Class.objects.create(title=title, department=department)
 
-        msgs = [
-            'successfully created class'
+        data_dict = {
+            "title": str(title),
+            "department": department.id,
+        }
+        serializer = serializers.ClassSerializer(data=data_dict)
+        if serializer.is_valid():
+            serializer.save()
+            msgs = [
+                serializer.data
+            ]
+            return Response({'details': msgs}, status.HTTP_200_OK)
+
+        errors = [
+            str(serializer.errors)
         ]
-        return Response({'details': msgs}, status.HTTP_200_OK)
+        return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
