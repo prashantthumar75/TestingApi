@@ -3,6 +3,12 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.forms import PasswordResetForm
 from django.utils.translation import gettext as _get
 from users.models import User
+from django.db.models import Q
+from organizations import models as organizations_models
+from organizations import serializers as organizations_serializers
+from departments import models as departments_models
+from teachers import models as teachers_models
+from students import models as student_models
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -10,6 +16,41 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         exclude = ('password', 'is_active', 'groups', 'user_permissions', 'is_superuser', 'is_staff')
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        qs = organizations_models.Organization.objects.filter(is_active=True)
+
+        organization_users = qs.filter(user__id=instance.id)
+        department_users = departments_models.Department.objects.filter(Q(user__id=instance.id) & Q(is_active=True))
+        teacher_users = teachers_models.Teacher.objects.filter(Q(user__id=instance.id) & Q(is_active=True))
+        student_users = student_models.Student.objects.filter(Q(user__id=instance.id) & Q(is_active=True))
+
+
+        organizations = {}
+
+        for _ in organization_users:
+            organizations.update({
+                "org": organizations_serializers.OrganizationSerializer(_).data
+            })
+
+        for _ in department_users:
+            organizations.update({
+                "department": organizations_serializers.OrganizationSerializer(_.organization).data
+            })
+        
+        for _ in teacher_users:
+            organizations.update({
+                "teacher": organizations_serializers.OrganizationSerializer(_.organization).data
+            })
+        
+        for _ in student_users:
+            organizations.update({
+                "student": organizations_serializers.OrganizationSerializer(_.section.of_class.department.organization).data
+            })
+
+        response["organizations"] = organizations
+        return response
 
 
 class TokenSerializer(serializers.ModelSerializer):
