@@ -21,6 +21,10 @@ def validate_org(func):
         else:
             org_id = request.data.get('org_id', 0)
 
+            # if org_id is passed in query_params
+            temp_org_id = request.query_params.get('org_id', None) if request.query_params else None
+            org_id = temp_org_id if temp_org_id else org_id
+
         if not org_id:
             return Response({'details': ['org_id is not passed']}, status.HTTP_400_BAD_REQUEST)
 

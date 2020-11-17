@@ -26,7 +26,6 @@ import json
 from utils.decorators import is_organization, validate_org
 from utils.utilities import pop_from_data
 
-#TODO : filter for all entity
 class Organization(views.APIView):
     authentication_classes = (authentication.TokenAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
@@ -50,7 +49,7 @@ class Organization(views.APIView):
         organization = kwargs.get('organization')
 
         org_id = organization.id
-        qs = models.Organization.objects.filter(id=org_id,is_active=True)
+        qs = models.Organization.objects.filter(id=org_id, is_active=True)
 
         serializer = serializers.OrganizationSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
@@ -70,6 +69,9 @@ class Organization(views.APIView):
                 'accepting_req': openapi.Schema(type=openapi.TYPE_BOOLEAN)
             }
         ),
+         manual_parameters=[
+            openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
+        ],
         responses={
             200: openapi.Response("OK- Successful POST Request"),
             401: openapi.Response(
@@ -78,9 +80,11 @@ class Organization(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    #todo: update org_id
     @is_organization
     def put(self, request, *args, **kwargs):
+        query_params = self.request.query_params
+        print(request.query_params.get('org_id', 0))
+        
         data = request.data
 
         data = pop_from_data(["is_active", "user"], data)
