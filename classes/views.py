@@ -9,9 +9,6 @@ from drf_yasg2 import openapi
 
 # CUSTOM
 from . import models, serializers
-from departments import models as departments_models
-from organizations import models as organizations_models
-from sections import serializers as section_serializers
 
 # Utils
 import json
@@ -102,3 +99,47 @@ class ClassViewSet(views.APIView):
             str(serializer.errors)
         ]
         return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            title="Delete Class",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING)
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    @validate_org
+    def delete(self, request, *args, **kwargs):
+        data = request.data
+        id = data.get('id', None)
+
+        if not id:
+            errors = [
+                'id is not passed'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        classes = models.Class.objects.filter(Q(id=int(id)) & Q(is_active=True))
+        if not len(classes):
+            errors = [
+                'invalid id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        classes = classes[0]
+        classes.is_active = False
+        classes.save()
+
+        msgs = [
+            "Successfully deleted class"
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)

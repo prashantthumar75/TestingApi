@@ -196,12 +196,11 @@ class AnnouncenmentViewSet(views.APIView):
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
-            title="Update Announcement",
+            title="Delete Announcement",
             type=openapi.TYPE_OBJECT,
             properties={
                 'id': openapi.Schema(type=openapi.TYPE_INTEGER),
                 'org_id': openapi.Schema(type=openapi.TYPE_STRING)
-
             }
         ),
         responses={
