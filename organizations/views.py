@@ -24,7 +24,7 @@ from utils.decorators import is_organization, validate_org, validate_dept
 # Utils
 import json
 from utils.decorators import is_organization, validate_org
-
+from utils.utilities import pop_from_data
 
 #TODO : filter for all entity
 class Organization(views.APIView):
@@ -41,32 +41,61 @@ class Organization(views.APIView):
         },
         manual_parameters=[
             openapi.Parameter(name="org_id", in_="query", type=openapi.TYPE_STRING),
-            openapi.Parameter(name="dept_id", in_="query", type=openapi.TYPE_STRING),
-            openapi.Parameter(name="teacher_id", in_="query", type=openapi.TYPE_INTEGER),
-            openapi.Parameter(name="student_id", in_="query", type=openapi.TYPE_INTEGER),
         ]
     )
-    @validate_org
+    @is_organization
     def get(self, request, **kwargs):
         query_params = self.request.query_params
-        dept_id = query_params.get('dept_id', None)
-        teacher_id = query_params.get('teacher_id', None)
-        student_id = query_params.get('student_id', None)
 
         organization = kwargs.get('organization')
 
         org_id = organization.id
         qs = models.Organization.objects.filter(id=org_id,is_active=True)
 
-        if teacher_id:
-            qs = teachers_models.Teacher.objects.filter(id=teacher_id,organization__id=org_id,is_active=True)
-        if dept_id:
-            qs = departments_models.Department.objects.filter(is_active=True)
-        if student_id:
-            qs = student_models.Student.objects.filter(is_active=True)
-
         serializer = serializers.OrganizationSerializer(qs, many=True)
         return Response(serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            title="Update Organization",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'join_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                'contact_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'contact_phone': openapi.Schema(type=openapi.TYPE_STRING),
+                'contact_email': openapi.Schema(type=openapi.TYPE_STRING),
+                'location': openapi.Schema(type=openapi.TYPE_STRING),
+                'accepting_req': openapi.Schema(type=openapi.TYPE_BOOLEAN)
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    #todo: update org_id
+    @is_organization
+    def put(self, request, *args, **kwargs):
+        data = request.data
+
+        data = pop_from_data(["is_active", "user"], data)
+        organization = kwargs.get("organization")
+
+        serializer = serializers.OrganizationSerializer(organization, data=data, partial=True)
+
+        if not serializer.is_valid():
+            return Response({'details': [str(serializer.errors)]}, status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+        msgs = [
+            'successfully updated department'
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
 
 
 class VerifyOrgId(views.APIView):
@@ -268,7 +297,6 @@ class JoinRequestsTeacher(views.APIView):
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             temp_teach = temp_teach[0]
-            #todo : teacher id 1,2 accepted and 3 remaining if we pass [1,2,3] wil not work , change funcationality
             if not temp_teach.requested_organization or temp_teach.requested_organization.user.id != request.user.id:
                 errors = [
                     'all requests accepted'

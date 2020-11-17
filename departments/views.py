@@ -139,7 +139,6 @@ class DepartmentViewSet(views.APIView):
                 'contact_phone': openapi.Schema(type=openapi.TYPE_STRING),
                 'contact_email': openapi.Schema(type=openapi.TYPE_STRING),
                 'department_id': openapi.Schema(type=openapi.TYPE_STRING)
-
             }
         ),
         responses={

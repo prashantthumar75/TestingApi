@@ -43,7 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
             organizations.update({
                 "teacher": organizations_serializers.OrganizationSerializer(_.organization).data
             })
-        
+
         for _ in student_users:
             organizations.update({
                 "student": organizations_serializers.OrganizationSerializer(_.section.of_class.department.organization).data
