@@ -1,4 +1,6 @@
 from django.db import models
+import uuid
+
 
 class Student(models.Model):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='student_user')
@@ -12,3 +14,11 @@ class Student(models.Model):
     
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.student_id:
+            temp_stud_id = str(uuid.uuid4())
+            while Student.objects.filter(student_id=temp_stud_id):
+                temp_stud_id = str(uuid.uuid4())
+            self.student_id = temp_stud_id
+        super().save()

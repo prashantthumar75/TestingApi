@@ -83,8 +83,7 @@ class Organization(views.APIView):
     @is_organization
     def put(self, request, *args, **kwargs):
         query_params = self.request.query_params
-        print(request.query_params.get('org_id', 0))
-        
+
         data = request.data
 
         data = pop_from_data(["is_active", "user"], data)
@@ -303,7 +302,7 @@ class JoinRequestsTeacher(views.APIView):
             temp_teach = temp_teach[0]
             if not temp_teach.requested_organization or temp_teach.requested_organization.user.id != request.user.id:
                 errors = [
-                    'all requests accepted'
+                    'already accepted requests'
                 ]
                 return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
             valid_teachers.append(temp_teach)
@@ -338,7 +337,7 @@ class JoinRequestsStudent(views.APIView):
         query_params = self.request.query_params
         sec_id = query_params.get('sec_id',None)
 
-        org_id = kwargs.get('org_id')
+        org = kwargs.get('organization')
         if not sec_id:
             errors = [
                 'sec_id is not passed'
@@ -346,7 +345,7 @@ class JoinRequestsStudent(views.APIView):
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
         students = student_models.Student.objects.filter(
-            Q(requested_section__id = sec_id) & Q(is_active=True)& Q(section__of_class__department__organization__org_id=org_id)
+            Q(requested_section__id = sec_id) & Q(is_active=True)& Q(requested_section__of_class__department__organization__org_id=org.org_id)
         )
 
         if not len(students):
@@ -361,7 +360,7 @@ class JoinRequestsStudent(views.APIView):
 
     @swagger_auto_schema(
         request_body = openapi.Schema(
-            title = "Join teacher request",
+            title = "Join student request",
             type=openapi.TYPE_OBJECT,
             properties={
                 'org_id': openapi.Schema(type=openapi.TYPE_STRING),
@@ -375,17 +374,12 @@ class JoinRequestsStudent(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-
-    def post(self, request):
+    @is_organization
+    def post(self, request, **kwargs):
         data = request.data
-        org_id = data.get('org_id',"")
         students = str(data.get("students", "[]"))
 
-        if not org_id:
-            errors = [
-                'org_id is not passed'
-            ]
-            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+        org = kwargs.get('organization')
 
         if len(students) < 3:
             errors = [
@@ -393,7 +387,7 @@ class JoinRequestsStudent(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        organizations = models.Organization.objects.filter(Q(user__id=request.user.id) & Q(org_id=org_id))
+        organizations = models.Organization.objects.filter(Q(user__id=request.user.id) & Q(org_id=org.org_id))
 
         if not len(organizations):
             errors = [
@@ -412,7 +406,22 @@ class JoinRequestsStudent(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        stud_qs = student_models.Student.objects.filter(is_active=True)
+        stud_qs = student_models.Student.objects.filter(Q(is_active=True) & Q(requested_section__of_class__department__organization__org_id=org.org_id))
+
+        if not stud_qs:
+            for i in students:
+                stud_ = student_models.Student.objects.filter(
+                    Q(is_active=True)& Q(id=i) & Q(requested_section=None)&Q(section__of_class__department__organization__org_id=org.org_id))
+                if stud_:
+                    errors = [
+                        "already accepted requests"
+                    ]
+                    return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+            errors = [
+                "invalid organization request"
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
         valid_students = []
 

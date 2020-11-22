@@ -169,6 +169,46 @@ class DepartmentViewSet(views.APIView):
         return Response({'details': msgs}, status.HTTP_200_OK)
 
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            title="Delete Department",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'dept_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING)
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    @is_organization
+    def delete(self, request, *args, **kwargs):
+        data = request.data
+        dept_id = data.get('dept_id', None)
+        org_id = data.get('org_id', None)
+
+        departments = models.Department.objects.filter(Q(department_id=dept_id) & Q(organization__org_id=org_id) & Q(is_active=True))
+        if not len(departments):
+            errors = [
+                'invalid id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        department = departments[0]
+        department.is_active = False
+        department.save()
+
+        msgs = [
+            "Successfully deleted department"
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
+
+
 class JoinDepartment(views.APIView):
 
     authentication_classes = (authentication.TokenAuthentication,)
