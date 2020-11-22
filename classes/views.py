@@ -117,10 +117,11 @@ class ClassViewSet(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @validate_org
+    @is_organization
     def delete(self, request, *args, **kwargs):
         data = request.data
         id = data.get('id', None)
+        org_id = data.get('org_id', None)
 
         if not id:
             errors = [
@@ -128,7 +129,7 @@ class ClassViewSet(views.APIView):
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        classes = models.Class.objects.filter(Q(id=int(id)) & Q(is_active=True))
+        classes = models.Class.objects.filter(Q(id=int(id)) & Q(is_active=True) & Q(department__organization__org_id=org_id))
         if not len(classes):
             errors = [
                 'invalid id'
