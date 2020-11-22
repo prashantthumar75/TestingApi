@@ -7,10 +7,11 @@ from rest_framework.response import Response
 from . import models, serializers
 from organizations import models as organizations_models
 from sections import models as section_models
+from django.db.models import Q
 
 # Utils
 import json
-from utils.decorators import put_student, is_organization
+from utils.decorators import put_student, is_organization, validate_dept
 from utils.utilities import pop_from_data
 
 # Swagger
@@ -161,8 +162,8 @@ class Student(views.APIView):
             title="Delete Student",
             type=openapi.TYPE_OBJECT,
             properties={
-                'dept_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'sec_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'student_id': openapi.Schema(type=openapi.TYPE_STRING),
             }
         ),
@@ -177,22 +178,23 @@ class Student(views.APIView):
     @is_organization
     def delete(self, request, *args, **kwargs):
         data = request.data
-        dept_id = data.get('dept_id', None)
-        org_id = data.get('org_id', None)
+        student_id = data.get('student_id', None)
+        sec_id = data.get('sec_id', None)
 
-        departments = models.Student.objects.filter(Q(department_id=dept_id) & Q(organization__org_id=org_id) & Q(is_active=True))
-        if not len(departments):
+        org = kwargs.get('organization')
+        students = models.Student.objects.filter(Q(student_id=student_id) & Q(section__id=sec_id)& Q(section__of_class__department__organization__org_id=org.org_id)& Q(is_active=True))
+
+        if not len(students):
             errors = [
-                'invalid id'
+                'invalid stduent id'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        department = departments[0]
-        department.is_active = False
-        department.save()
+        student = students[0]
+        student.is_active = False
+        student.save()
 
         msgs = [
-            "Successfully deleted department"
+            "Successfully deleted student"
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
-

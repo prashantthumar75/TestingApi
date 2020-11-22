@@ -146,6 +146,46 @@ class Teacher(views.APIView):
         ]
         return Response({'details': msgs}, status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            title="Delete Student",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'org_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'teacher_id': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response(
+                "Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    @is_organization
+    def delete(self, request, *args, **kwargs):
+        data = request.data
+        teacher_id = data.get('teacher_id', None)
+
+        org = kwargs.get('organization')
+        teachers = models.Teacher.objects.filter(Q(teacher_id=teacher_id) & Q(organization__org_id=org.org_id)& Q(is_active=True))
+
+        if not len(teachers):
+            errors = [
+                'invalid teacher id'
+            ]
+            return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+        teacher = teachers[0]
+        teacher.is_active = False
+        teacher.save()
+
+        msgs = [
+            "Successfully deleted teacher"
+        ]
+        return Response({'details': msgs}, status.HTTP_200_OK)
+
 
 
 class AssignSubject(views.APIView):
