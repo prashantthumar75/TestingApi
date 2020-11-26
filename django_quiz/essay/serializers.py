@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from . import models
 
-class SubjectSerializer(serializers.ModelSerializer):
+
+class EssayQuestionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.Subject
+        model = models.Essay_Question
         fields = "__all__"

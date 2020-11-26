@@ -10,6 +10,91 @@ from .forms import QuestionForm, EssayForm
 from .models import Quiz, Category, Progress, Sitting, Question
 from django_quiz.essay.models import Essay_Question
 
+from django.shortcuts import render
+from rest_framework import status, permissions, authentication, views, viewsets
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from django.db.models import Q
+
+# Swagger
+from drf_yasg2.utils import swagger_auto_schema
+from drf_yasg2 import openapi
+
+# CUSTOM
+from . import models, serializers
+
+class QuizViewApi(views.APIView):
+    serializer_class = serializers.QuizSerializer
+    # authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (permissions.AllowAny,)
+
+
+    @swagger_auto_schema(
+        request_body = openapi.Schema(
+            title = "Quiz",
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+                'url': openapi.Schema(type=openapi.TYPE_STRING),
+                'category': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'random_order': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                'max_questions': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'answers_at_end': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                'exam_paper': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                'single_attempt': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                'pass_mark': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'success_text': openapi.Schema(type=openapi.TYPE_STRING),
+                'fail_text': openapi.Schema(type=openapi.TYPE_STRING),
+                'draft': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+            }
+        ),
+        responses={
+            200: openapi.Response("OK- Successful POST Request"),
+            401: openapi.Response("Unauthorized- Authentication credentials were not provided. || Token Missing or Session Expired"),
+            422: openapi.Response("Unprocessable Entity- Make sure that all the required field values are passed"),
+            500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
+        }
+    )
+    def post(self, request):
+        data = request.data
+        title = data.get('title',"")
+        description = data.get('description')
+        url = data.get('url')
+        category = data.get('category')
+        random_order = data.get('random_order')
+        max_questions = data.get('max_questions')
+        answer_at_end = data.get('answers_at_end')
+        exam_paper = data.get('exam_paper')
+        single_attempt = data.get('single_attempt')
+        pass_mark = data.get('pass_mark')
+        success_text = data.get('success_text')
+        fail_text = data.get('fail_text')
+        draft = data.get('draft')
+
+        data_dict={
+            "title": title,
+            "description": description,
+            "url": url,
+            "category": category,
+            "random_order": random_order,
+            "max_questions": max_questions,
+            "answers_at_end": answer_at_end,
+            "exam_paper": exam_paper,
+            "single_attempt": single_attempt,
+            "pass_mark": pass_mark,
+            "success_text": success_text,
+            "fail_text": fail_text,
+            "draft": draft,
+        }
+        serializer = self.serializer_class(data=data_dict)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status.HTTP_201_CREATED)
+
+        return Response({'details':serializer.errors}, status.HTTP_400_BAD_REQUEST)
+
 
 class QuizMarkerMixin(object):
     @method_decorator(login_required)

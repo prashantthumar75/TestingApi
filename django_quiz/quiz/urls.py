@@ -5,19 +5,33 @@ except ImportError:
 
 from .views import QuizListView, CategoriesListView, \
     ViewQuizListByCategory, QuizUserProgressView, QuizMarkingList, \
-    QuizMarkingDetail, QuizDetailView, QuizTake
+    QuizMarkingDetail, QuizDetailView, QuizTake, QuizViewApi
 
 from django_quiz.multichoice.views import MultichoiceAnswer,MultichoiceQuestion
+from django_quiz.essay.views import EssayQuestion
+from django_quiz.true_false.views import TFQuestion
 
 urlpatterns = [
 
     url(r'^MCQuestion/$',
         view=MultichoiceQuestion.as_view(),
-        name='quiz_index'),
+        name='MCQ_quiz'),
 
     url(r'^MCAnswer/$',
         view=MultichoiceAnswer.as_view(),
-        name='quiz_index'),
+        name='MCQ_Answer_quiz'),
+
+    url(r'^EssayQuestion/$',
+        view=EssayQuestion.as_view(),
+        name='Essay_quiz'),
+
+    url(r'^TFQuestion/$',
+        view=TFQuestion.as_view(),
+        name='TF_quiz'),
+
+    url(r'^Quiz/$',
+        view=QuizViewApi.as_view(),
+        name='quiz'),
 
     url(r'^$',
         view=QuizListView.as_view(),
@@ -52,3 +66,4 @@ urlpatterns = [
         view=QuizTake.as_view(),
         name='quiz_question'),
 ]
+
