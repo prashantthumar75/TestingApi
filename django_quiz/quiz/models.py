@@ -12,7 +12,7 @@ from django.utils.timezone import now
 from six import python_2_unicode_compatible
 from django.conf import settings
 
-from model_utils.managers import InheritanceManager
+# from model_utils.managers import InheritanceManager
 
 
 class CategoryManager(models.Manager):
@@ -581,7 +581,7 @@ class Question(models.Model):
                                                "been answered."),
                                    verbose_name=_('Explanation'))
 
-    objects = InheritanceManager()
+#     objects = InheritanceManager()
 
     class Meta:
         verbose_name = _("Question")
