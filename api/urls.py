@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.conf.urls import url
 
 # Swagger
 from rest_framework import permissions
@@ -31,6 +32,8 @@ urlpatterns = [
     path('students/', include('students.urls')),
     path('events/', include('events.urls')),
     path('announcements/', include('announcements.urls')),
+
+    url(r'^q/', include('django_quiz.quiz.urls')),
 
     re_path(r'^swagger(?P<format>.json|.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = ")ns8rx+!h^u6o8=tdlz6o2bre7r20)^50=du!6xe4+*d+!$tt("
 
-DEBUG = True
+DEBUG = False
 
 
 DATABASES = {
@@ -56,6 +56,12 @@ INSTALLED_APPS = [
     'teachers',
     'announcements',
     'users',
+
+    'django_quiz',
+    'django_quiz.essay',
+    'django_quiz.multichoice',
+    'django_quiz.quiz',
+    'django_quiz.true_false',
 ]
 
 SITE_ID = 1
