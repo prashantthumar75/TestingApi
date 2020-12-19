@@ -16,7 +16,7 @@ from sections import serializers as section_serializers
 
 # Utils
 import json
-from utils.utilities import validate_user_type, pop_from_data
+from utils.utilities import validate_user_type, pop_from_data, validate_from
 from utils.decorators import (
     validate_org,
     validate_dept,
@@ -87,6 +87,7 @@ class AnnouncenmentViewSet(views.APIView):
                 'title': openapi.Schema(type=openapi.TYPE_STRING),
                 'org_id': openapi.Schema(type=openapi.TYPE_STRING),
                 'user_type': openapi.Schema(type=openapi.TYPE_STRING),
+                'from': openapi.Schema(type=openapi.TYPE_INTEGER),
             }
         ),
         responses={
@@ -101,6 +102,7 @@ class AnnouncenmentViewSet(views.APIView):
         data = request.data
         title = data.get('title', None)
         user_type = data.get('user_type', None)
+        From = data.get('from', None)
 
         if not title or not user_type:
             errors = [
@@ -112,16 +114,63 @@ class AnnouncenmentViewSet(views.APIView):
 
         if not validate_user_type(user_type, organization, request.user):
             errors = [
-                'invalid user_type'
+                'invalid user_type options are org,dept,teacher'
             ]
             return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
-        data_dict = {
-            "user": request.user.id,
-            "organization": organization.id,
-            "title": str(title),
-        }
+        if user_type == 'dept':
+            from1 = validate_from(user_type,organization,request.user, From)
+            if from1 == False:
+                errors = [
+                    'Department user is not valid'
+                ]
+                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
 
+            fromDetail = {
+                "class":str(from1.title),
+                "Departemnt":str(from1.department),
+            }
+            data_dict = {
+                "user": request.user.id,
+                "organization": organization.id,
+                "title": str(title),
+                "From":str(fromDetail)
+            }
+        if user_type == 'teacher':
+            from1 = validate_from(user_type,organization,request.user, From)
+            if from1 == False:
+                errors = [
+                    'Teacher user is not valid'
+                ]
+                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+            fromDetail = {
+                "subject":str(from1),
+                "teacher":str(request.user),
+            }
+            data_dict = {
+                "user": request.user.id,
+                "organization": organization.id,
+                "title": str(title),
+                "From":str(fromDetail)
+            }
+        if user_type == 'org':
+            from1 = validate_from(user_type,organization,request.user, From)
+            if from1 == False:
+                errors = [
+                    'organization user is not valid'
+                ]
+                return Response({'details': errors}, status.HTTP_400_BAD_REQUEST)
+
+            fromDetail = {
+                "organization":str(from1),
+            }
+            data_dict = {
+                "user": request.user.id,
+                "organization": organization.id,
+                "title": str(title),
+                "From":str(fromDetail)
+            }
         serializer = serializers.AnnouncementSerializer(data=data_dict)
         if serializer.is_valid():
             serializer.save()
@@ -148,7 +197,7 @@ class AnnouncenmentViewSet(views.APIView):
                 'date': openapi.Schema(type=openapi.FORMAT_DATE),
                 'visible': openapi.Schema(type=openapi.TYPE_STRING),
                 'is_public': openapi.Schema(type=openapi.TYPE_BOOLEAN),
-
+                'acknowledge': openapi.Schema(type=openapi.TYPE_BOOLEAN),
             }
         ),
         responses={

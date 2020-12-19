@@ -137,6 +137,21 @@ class Quiz(models.Model):
                     " taken by users who can edit"
                     " quizzes."))
 
+    procting = models.BooleanField(
+        blank=True, default=False,
+        verbose_name=_("Procting"))
+
+    is_timer = models.BooleanField(
+        blank=True, default=False,
+        verbose_name=_("Is_Timer"),
+        help_text=_("If True, Timer will enable, If False Timer disable"))
+
+    NoOfTime_tabSwitch = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name=_("tab_switching"),
+        help_text=_("Number of user switched tab"))
+
+    Timer = models.DateTimeField(null=True, blank=True, verbose_name=_("Timer"),help_text=_("Timer for quiz"))
+
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
         self.url = re.sub('\s+', '-', self.url).lower()
 
