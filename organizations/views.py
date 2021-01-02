@@ -164,8 +164,8 @@ class JoinRequestsDepartment(views.APIView):
             500: openapi.Response("Internal Server Error- Error while processing the POST Request Function.")
         }
     )
-    @validate_dept
     @is_organization
+    @validate_dept
     def post(self, request, *args, **kwargs):
         data = request.data
         requesting_user_id = data.get("requesting_user_id", 0)
